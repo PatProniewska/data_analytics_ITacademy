@@ -6,6 +6,7 @@ SELECT DISTINCT company.country
 FROM company
 JOIN transaction
 ON company.id = transaction.company_id
+WHERE declined = 0
 ORDER BY company.country ASC;
 
 # Desde cuántos países se realizan las compras. 
@@ -13,11 +14,12 @@ ORDER BY company.country ASC;
 SELECT COUNT(DISTINCT company.country) as numero_paises 
 FROM company
 JOIN transaction
-ON company.id = transaction.company_id;
+ON company.id = transaction.company_id
+WHERE declined = 0;
 
 # Identifica a la compañía con la mayor media de ventas.
 
-SELECT company.company_name, company_id, AVG(transaction.amount) as media_de_ventas
+SELECT company.company_name, company_id, ROUND(AVG(transaction.amount), 2) as media_de_ventas
 FROM company
 JOIN transaction
 ON company.id = transaction.company_id
@@ -27,24 +29,36 @@ LIMIT 1;
 
 # NIVEL 1 Ejercicio 3 (SUBQUERY)
 
-# Muestra todas las transacciones realizadas por empresas de Alemania.
+# Muestra todas las transacciones realizadas por empresas de Alemania. (EXISTS --->> SUBQUERY CORELACIONADA/ MIRAR)
 
-SELECT transaction.id
+SELECT *
 FROM transaction
 WHERE transaction.company_id IN (
 	SELECT company.id
     FROM company
-    WHERE company.country = 'Germany');
+    WHERE company.country = 'Germany')
+ORDER BY transaction.amount DESC;
+
+SELECT *
+FROM transaction
+WHERE EXISTS (
+    SELECT transaction.id
+    FROM company
+    WHERE company.id = transaction.company_id
+      AND company.country = 'Germany');
 
 # Lista las empresas que han realizado transacciones por un amount superior a la media de todas las transacciones.
 
 SELECT company.company_name, company.id
 FROM company
 WHERE company.id IN (
-	SELECT DISTINCT transaction.company_id
+	SELECT transaction.company_id
 	FROM transaction
-    WHERE transaction.amount > (SELECT AVG(amount) FROM transaction))
+    WHERE declined = 0
+    AND transaction.amount > (SELECT AVG(amount) FROM transaction))
 ORDER BY company.company_name ASC;
+
+-- DISTINCT  no es necesario porque IN - solo lo incluye una vez?
 
 # Eliminarán del sistema las empresas que carecen de transacciones registradas, entrega el listado de estas empresas.
 
@@ -68,9 +82,9 @@ GROUP BY fecha_venta
 ORDER BY total_ventas DESC
 LIMIT 5;
 
-# Ejercicio 2 - ¿Cuál es la media de ventas por país? Presenta los resultados ordenados de mayor a menor medio.
+# Ejercicio 2 - ¿Cuál es la media de ventas por país? Presenta los resultados ordenados de mayor a menor medio. (ROUND)
 
-SELECT company.country, AVG(transaction.amount) as media_de_ventas
+SELECT company.country, ROUND(AVG(transaction.amount), 2) as media_de_ventas
 FROM company
 JOIN transaction
 ON company.id = transaction.company_id
@@ -83,7 +97,7 @@ ORDER BY media_de_ventas DESC;
 
 # Muestra el listado aplicando JOIN y subconsultas.
 
-SELECT company.company_name, company.id as company_id, company.country, transaction.amount, DATE(transaction.timestamp) as fecha, transaction.id as transaction_id
+SELECT *
 FROM company
 JOIN transaction
 ON company.id = transaction.company_id
@@ -95,16 +109,19 @@ ORDER BY transaction.timestamp DESC;
 
 # Muestra el listado aplicando solo subconsultas.
 
-SELECT transaction.amount, DATE(transaction.timestamp) as fecha, transaction.id as transaction_id
+SELECT *
 FROM transaction
 WHERE transaction.company_id IN (
     SELECT company.id
     FROM company
+    ## lista de transacciones hecha por companias solo con ID (Subquery 1)
+    ## abajo: cuales pais esta igual que el pais de Non Institute (Subquery 2 dentro de Subquery 1)
     WHERE company.country = (
         SELECT company.country
         FROM company
         WHERE company.company_name = 'Non Institute'))
-ORDER BY fecha DESC;
+ORDER BY transaction.timestamp DESC;
+
 
 # NIVEL 3
 
@@ -112,28 +129,29 @@ ORDER BY fecha DESC;
 # Presenta el nombre, teléfono, país, fecha y amount, de aquellas empresas que realizaron transacciones con un valor comprendido entre 100 y 200 euros 
 # y en alguna de estas fechas: 29 de abril de 2021, 20 de julio de 2021 y 13 de marzo de 2022. Ordena los resultados de mayor a menor cantidad.
 
-SELECT company.company_name, company.phone, company.country, DATE(transaction.timestamp), transaction.amount
+SELECT company.company_name, company.phone, company.country, DATE(transaction.timestamp) as date, transaction.amount
 FROM company
 JOIN transaction
 ON company.id = transaction.company_id
-WHERE transaction.amount >= 100 AND transaction.amount <= 200
-AND DATE(transaction.timestamp) IN ('2021-04-29','2021-07-20','2022-03-13')
+WHERE transaction.amount BETWEEN 350 AND 400
+AND DATE(transaction.timestamp) IN ('2015-04-29','2018-07-20','2024-03-13')
 ORDER BY transaction.amount DESC;
 
 # Ejercicio 2
 # Necesitamos optimizar la asignación de los recursos y dependerá de la capacidad operativa que se requiera, 
 # por lo que te piden la información sobre la cantidad de transacciones que realizan las empresas, 
-# pero el departamento de recursos humanos es exigente y quiere un listado de las empresas en las que especifiques si tienen más de 4 transacciones o menos.
+# pero el departamento de recursos humanos es exigente y quiere un listado de las empresas en las que especifiques si tienen más de 400 transacciones o menos.
+
 
 SELECT company.company_name, company.id, COUNT(transaction.id) as numero_transacciones,
    CASE 
-        WHEN COUNT(transaction.id) > 4 THEN 'Más de 4'
-        ELSE '4 o menos'
+        WHEN COUNT(transaction.id) > 4 THEN 'Más de 400'
+        ELSE '400 o menos'
     END AS categoria_transacciones
 FROM company
 JOIN transaction
 ON company.id = transaction.company_id
-GROUP BY company.id;
+GROUP BY company.id
+ORDER BY company.company_name ASC;
 
--- He creado una columna calculada - columna que no existe físicamente en la tabla, pero que se calcula al momento de ejecutar la consulta.
-
+-- He utilizado funcion: CASE statement - condicional.
