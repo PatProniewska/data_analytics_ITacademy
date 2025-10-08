@@ -47,6 +47,16 @@ WHERE credit_card.id = 'CcU-2938';
 # Ejercicio 3
 #. En la tabla "transaction" ingresa una nueva transacción con la siguiente información:
 
+DESCRIBE company;
+DESCRIBE credit_card;
+
+-- que creado variables que no permiten NULL en tabla credit_card. Voy a arreglarlo:
+
+ALTER TABLE credit_card 
+  MODIFY iban VARCHAR(34) NULL,
+  MODIFY pin CHAR(4) NULL,
+  MODIFY expiring_date VARCHAR(10) NULL;
+
 -- 1. Comprobar si existen los registros de la tarjeta y la empresa
 SELECT * FROM credit_card WHERE id = 'CcU-9999';
 SELECT * FROM company WHERE id = 'b-9999';
@@ -58,6 +68,35 @@ VALUES ('b-9999', 'Test Company', '000000000', 'test@test.com', 'Spain', 'www.te
 -- 3. Crear la tarjeta de crédito de la transacción (si no existe - como en nuestro caso)
 INSERT INTO credit_card (id, iban, pan, pin, cvv, expiring_date)
 VALUES ('CcU-9999', 'TEST123456789', '9999888877776666', '1234', '999', '12/30/30');
+
+/*
+En un primer momento había creado la empresa y la tarjeta de crédito con datos aleatorios inventados 
+para poder insertar la nueva transacción. Más adelante haciendo el P2P me di cuenta de que no se deben 
+introducir datos falsos en una base de datos, y que los valores desconocidos se
+registran como NULL. 
+
+Por eso, modifiqué la estructura de la tabla credit_card para permitir valores NULL 
+en las columnas necesarias, y en lugar de crear nuevos registros, actualicé los existentes 
+utilizando UPDATE para dejar los campos en NULL. Por eso, en esta captura se muestran 
+comandos UPDATE en lugar de INSERT, reflejando la corrección del error anterior.
+*/
+
+-- 2. Actualizar la empresa asociada a la transacción (solo dejar el ID y resto NULL)
+UPDATE company
+SET company_name = NULL,
+    phone = NULL,
+    email = NULL,
+    country = NULL,
+    website = NULL
+WHERE id = 'b-9999';
+
+-- 3. Actualizar la tarjeta de crédito de la transacción (solo dejar el ID y resto NULL)
+UPDATE credit_card
+SET iban = NULL,
+    pin = NULL,
+    cvv = NULL,
+    expiring_date = NULL
+WHERE id = 'CcU-9999';
 
 -- 4. Insertar la nueva transacción en la tabla "transaction"
 INSERT INTO transaction (id, credit_card_id, company_id, user_id, lat, longitude, amount, declined)
@@ -105,11 +144,12 @@ SELECT
 FROM company
 JOIN transaction
 ON company.id = transaction.company_id
-GROUP BY company.id, company_name
-ORDER BY AVG(amount) DESC;
+WHERE declined = 0
+GROUP BY company.id, company_name;
 
 SELECT *
-FROM vista_marketing;
+FROM vista_marketing
+ORDER BY promedio_compra DESC;
 
 # Ejercicio 3
 # Filtra la vista VistaMarketing para mostrar sólo las compañías que tienen su país de residencia en "Germany"
@@ -120,7 +160,7 @@ WHERE vista_marketing.pais = 'Germany'
 ORDER BY nombre_compania ASC;
 
 # =========================================================
-# NIVEL 2
+# NIVEL 3
 # =========================================================
 
 # Ejercicio 1
@@ -177,7 +217,71 @@ ADD CONSTRAINT FK_Transaction_user
 FOREIGN KEY (user_id) 
 REFERENCES user(id);
 
--- 6. Visualizar datos finales:
+-- 6. Renombrar  tabla 'user' to 'data_user':
+
+RENAME TABLE user TO data_user;
+
+-- 7. Quitar la columna "website" de la tabla company:
+
+ALTER TABLE company
+DROP COLUMN website;
+
+-- Comprobar que la columna se quitó bien
+DESCRIBE company;
+
+-- 8. Añadir columna nueva "fecha_actual" en la tabla credit_card (tipo DATE)
+
+ALTER TABLE credit_card
+ADD COLUMN fecha_actual DATE;
+
+-- Comprobar que la columna se añadió bien
+DESCRIBE credit_card;
+
+-- 9. Otra forma de cambiar el nombre de la columna "email" a "personal_email" en la tabla data_user
+
+ALTER TABLE data_user
+RENAME COLUMN email TO personal_email;
+
+-- Comprobar que el cambio se hizo bien
+DESCRIBE data_user;
+
+-- 10. Cambiar los tipos y longitudes de datos para que sean iguales al diagrama deseado:
+
+-- Me di cuenta de que antes cometi un error antes creando la relación.
+-- Puse la columna "id" en data_user como CHAR(10), pero debería ser INT.
+-- Por eso, ahora tengo que soltar la FK, cambiar el tipo y volver a crearla.
+
+-- Quitar la Foreign Key para poder cambiar el tipo de datos
+ALTER TABLE transaction
+DROP FOREIGN KEY FK_Transaction_user;
+
+-- Cambiar el tipo del id de data_user a INT
+ALTER TABLE data_user
+MODIFY id INT NOT NULL;
+
+-- Cambiar también el tipo de user_id en transaction a INT (debe ser igual)
+ALTER TABLE transaction
+MODIFY user_id INT;
+
+-- Volver a crear la Foreign Key correctamente con el tipo INT
+ALTER TABLE transaction
+ADD CONSTRAINT FK_Transaction_user
+FOREIGN KEY (user_id)
+REFERENCES data_user(id);
+
+-- Comprobar que todo está correcto
+DESCRIBE data_user;
+DESCRIBE transaction;
+
+
+-- Cambiar el tipo de la columna "id" en la tabla data_user a INT (clave principal)
+
+ALTER TABLE data_user
+MODIFY id INT;
+
+
+
+-- . Visualizar datos finales:
 
 SELECT *
 FROM user;
@@ -200,10 +304,11 @@ JOIN credit_card
 ON transaction.credit_card_id = credit_card.id
 JOIN company
 ON transaction.company_id = company.id
-ORDER BY transaction.id DESC;
+WHERE declined = 0;
 
 SELECT *
-FROM informe_tecnico;
+FROM informe_tecnico
+ORDER BY ID_transaccion DESC;
 
 
 
