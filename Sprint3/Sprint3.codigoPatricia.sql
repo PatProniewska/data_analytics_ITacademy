@@ -47,15 +47,6 @@ WHERE credit_card.id = 'CcU-2938';
 # Ejercicio 3
 #. En la tabla "transaction" ingresa una nueva transacción con la siguiente información:
 
-DESCRIBE company;
-DESCRIBE credit_card;
-
--- que creado variables que no permiten NULL en tabla credit_card. Voy a arreglarlo:
-
-ALTER TABLE credit_card 
-  MODIFY iban VARCHAR(34) NULL,
-  MODIFY pin CHAR(4) NULL,
-  MODIFY expiring_date VARCHAR(10) NULL;
 
 -- 1. Comprobar si existen los registros de la tarjeta y la empresa
 SELECT * FROM credit_card WHERE id = 'CcU-9999';
@@ -81,6 +72,17 @@ utilizando UPDATE para dejar los campos en NULL. Por eso, en esta captura se mue
 comandos UPDATE en lugar de INSERT, reflejando la corrección del error anterior.
 */
 
+DESCRIBE company;
+DESCRIBE credit_card;
+
+-- que creado variables que no permiten NULL en tabla credit_card. Voy a arreglarlo:
+
+ALTER TABLE credit_card 
+  MODIFY iban VARCHAR(34) NULL,
+  MODIFY pin CHAR(4) NULL,
+  MODIFY expiring_date VARCHAR(10) NULL;
+
+
 -- 2. Actualizar la empresa asociada a la transacción (solo dejar el ID y resto NULL)
 UPDATE company
 SET company_name = NULL,
@@ -98,9 +100,14 @@ SET iban = NULL,
     expiring_date = NULL
 WHERE id = 'CcU-9999';
 
+DESCRIBE company;
+DESCRIBE credit_card;
+
 -- 4. Insertar la nueva transacción en la tabla "transaction"
 INSERT INTO transaction (id, credit_card_id, company_id, user_id, lat, longitude, amount, declined)
 VALUES ('108B1D1D-5B23-A76C-55EF-C568E49A99DD', 'CcU-9999', 'b-9999', 9999, 829.999, -117.999, 111.11, 0);
+
+-- Comprobar resultado final:
 
 SELECT *
 FROM transaction
@@ -169,7 +176,6 @@ ORDER BY nombre_compania ASC;
 # Te pide que le ayudes a dejar los comandos ejecutados para obtener el siguiente diagrama.
 
 -- 1. Crear la tabla "user":
-
 CREATE TABLE IF NOT EXISTS user (
 	id CHAR(10) PRIMARY KEY,
 	name VARCHAR(100),
@@ -190,13 +196,16 @@ CREATE TABLE IF NOT EXISTS user (
 ALTER TABLE transaction
 MODIFY COLUMN user_id CHAR(10);
 
--- 3. Abrir el archivo "datos introducir sprint3 user.sql"
+-- 3. Renombrar  tabla 'user' to 'data_user':
+RENAME TABLE user TO data_user;
+
+-- 4. Abrir el archivo "datos introducir sprint3 user.sql"
 -- Insertar los datos del archivo “datos_introducir_user.sql” y comprobar el resultado:
 
 SELECT *
-FROM user;
+FROM data_user;
 
--- 4. Preparar los datos para crear las relacion (FK) entre tablas:
+-- 5. Preparar los datos para crear las relacion (FK) entre tablas:
 
 -- Comprobar si hay usuarios que existen en tabla TRANSACTION y no existan en tabla USER
 
@@ -205,21 +214,19 @@ FROM transaction
 WHERE user_id IS NOT NULL
 AND user_id NOT IN (SELECT id FROM user);
 
--- Añadir los datos de. prueba de usuario que faltaba:
+-- Añadir los datos de prueba de usuario que faltaba:
 
 INSERT INTO user (id, name, surname, phone, email, birth_date, country, city, postal_code, address)
 VALUES ('9999', 'testname', 'testsurname', '000000000', 'user@test.com', '2001-01-01', 'Spain', 'Barcelona', '08000', 'Poblenou Street 123');
 
--- 5. Crear relacion (FK) entre las tablas (después de crear el usuario que faltaba, podemos establecer la FK sin errores.):
+-- 6. Crear relacion (FK) entre las tablas (después de crear el usuario que faltaba, podemos establecer la FK sin errores.):
 
 ALTER TABLE transaction
 ADD CONSTRAINT FK_Transaction_user
 FOREIGN KEY (user_id) 
 REFERENCES user(id);
 
--- 6. Renombrar  tabla 'user' to 'data_user':
-
-RENAME TABLE user TO data_user;
+DESCRIBE transaction;
 
 -- 7. Quitar la columna "website" de la tabla company:
 
@@ -275,16 +282,36 @@ DESCRIBE transaction;
 
 
 -- Cambiar el tipo de la columna "id" en la tabla data_user a INT (clave principal)
-
 ALTER TABLE data_user
 MODIFY id INT;
 
+-- 11. Eliminar las vistas:
+DROP VIEW IF EXISTS informe_tecnico;
+DROP VIEW IF EXISTS vista_marketing;
 
 
--- . Visualizar datos finales:
+-- 12. Modificar los tipos de datos en tabla 'credit_card' para que coincidan con diagrama deseado:
+ALTER TABLE credit_card
+  MODIFY COLUMN id VARCHAR(20),
+  MODIFY COLUMN iban VARCHAR(50),
+  MODIFY COLUMN pin VARCHAR(4),
+  MODIFY COLUMN cvv INT,
+  MODIFY COLUMN expiring_date VARCHAR(20),
+  MODIFY COLUMN fecha_actual DATE;
 
+ -- Comprobar el resultado:
+ DESCRIBE credit_card;
+  
+  -- 13. Modificar los tipos de datos en tabla 'transaction' para que coincidan con diagrama deseado:
+  ALTER TABLE `transaction`
+  MODIFY COLUMN credit_card_id VARCHAR(20);
+  
+   -- Comprobar el resultado:
+ DESCRIBE transaction;
+
+-- 14. Visualizar datos finales:
 SELECT *
-FROM user;
+FROM data_user;
 
 
 # Ejercicio 2
@@ -292,31 +319,24 @@ FROM user;
 
 CREATE OR REPLACE VIEW informe_tecnico AS
 SELECT 
-	transaction.id AS ID_transaccion, 
-    user.name AS Nombre_usuario,
-    user.surname AS Apellido_usuario,
+    transaction.id AS ID_transaccion,
+    data_user.name AS Nombre_usuario,
+    data_user.surname AS Apellido_usuario,
     credit_card.iban AS IBAN_tarjeta,
     company.company_name AS Nombre_compania
 FROM transaction
-JOIN user
-ON transaction.user_id = user.id
+JOIN data_user
+    ON transaction.user_id = data_user.id
 JOIN credit_card
-ON transaction.credit_card_id = credit_card.id
+    ON transaction.credit_card_id = credit_card.id
 JOIN company
-ON transaction.company_id = company.id
-WHERE declined = 0;
+    ON transaction.company_id = company.id
+WHERE transaction.declined = 0;
 
+-- Mostrar resultados de la vista
 SELECT *
 FROM informe_tecnico
 ORDER BY ID_transaccion DESC;
-
-
-
-
-
-
-
-
 
 
 
