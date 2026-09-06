@@ -30,10 +30,9 @@ Las carpetas están numeradas por orden de progresión técnica (no cronológico
 
 ## ⭐ Proyecto destacado
 
-El proyecto más completo de este repositorio es **`11-Proyecto-Final`**, donde se integran limpieza, análisis y visualización de datos en un caso práctico de negocio real.
+El proyecto más completo de este repositorio es **`11-Proyecto-Final`**, un análisis de la evolución emocional y sonora de la música popular anglosajona (1950–2019), donde se integran limpieza, análisis de sentimiento, modelado de tópicos y visualización de datos sobre un dataset de más de 28.000 canciones.
 
 ## 📬 Contacto
 
 - LinkedIn: [linkedin.com/in/patricia-proniewska-09144a3b4](https://linkedin.com/in/patricia-proniewska-09144a3b4)
-- Email: patrycjaproniewska@gmail.com# data_analytics_ITacademy
-Bootcamp
+- Email: patrycjaproniewska@gmail.com
